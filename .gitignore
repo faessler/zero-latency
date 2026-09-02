@@ -17,6 +17,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# local pledge store (dev fallback for Vercel Blob)
+/.data
+
 # env files
 .env
 .env*.local

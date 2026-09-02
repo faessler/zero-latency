@@ -1,24 +1,23 @@
 import ArticleBody from "@/components/ArticleBody";
-import FloatingDoodles from "@/components/FloatingDoodles";
+import BackerSection from "@/components/BackerSection";
+import FloatingIcons from "@/components/FloatingIcons";
 import Hero from "@/components/Hero";
-import Kickstarter from "@/components/Kickstarter";
 import ReadingProgress from "@/components/ReadingProgress";
 import { getArticle } from "@/lib/content";
+import { getPledgeStats } from "@/lib/pledgeStore";
 
 export default async function Home() {
-  const article = await getArticle();
-  const kickstarterUrl =
-    process.env.NEXT_PUBLIC_KICKSTARTER_URL?.trim() || "https://www.kickstarter.com/";
+  const [article, stats] = await Promise.all([getArticle(), getPledgeStats()]);
 
   return (
     <main className="aurora-bg relative min-h-screen">
       <ReadingProgress />
-      <FloatingDoodles />
+      <FloatingIcons />
 
       <div className="relative z-10">
         <Hero title={article.title} />
         <ArticleBody blocks={article.blocks} />
-        <Kickstarter url={kickstarterUrl} />
+        <BackerSection initialStats={stats} />
 
         <footer className="border-t border-white/10 py-10 text-center text-sm text-white/40">
           <p>Zero Latency — a world without waiting.</p>
