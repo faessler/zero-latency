@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>zero-latency</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="card">
+      <header>
+        <h1>zero-latency</h1>
+        <p class="subtitle">Live WebSocket round-trip latency</p>
+      </header>
+
+      <section class="readout">
+        <div class="metric">
+          <span class="label">current</span>
+          <span id="current" class="value">–</span>
+          <span class="unit">ms</span>
+        </div>
+        <div class="metric">
+          <span class="label">min</span>
+          <span id="min" class="value">–</span>
+          <span class="unit">ms</span>
+        </div>
+        <div class="metric">
+          <span class="label">avg</span>
+          <span id="avg" class="value">–</span>
+          <span class="unit">ms</span>
+        </div>
+        <div class="metric">
+          <span class="label">max</span>
+          <span id="max" class="value">–</span>
+          <span class="unit">ms</span>
+        </div>
+      </section>
+
+      <canvas id="chart" width="640" height="160" aria-label="latency chart"></canvas>
+
+      <footer>
+        <span id="status" class="status connecting">connecting…</span>
+        <span id="samples" class="samples">0 samples</span>
+      </footer>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
