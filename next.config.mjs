@@ -1,13 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  images: {
-    // Google Docs serves inline images from googleusercontent.com.
-    remotePatterns: [
-      { protocol: "https", hostname: "**.googleusercontent.com" },
-      { protocol: "https", hostname: "lh3.googleusercontent.com" },
-    ],
-  },
+  // Google Doc images are served through the same-origin /api/image proxy
+  // (see app/api/image/route.ts), so the Next.js Image Optimizer is not used.
 };
 
 export default nextConfig;
