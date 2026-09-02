@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" width="1200" height="675" role="img" aria-label="A data center in the Swiss Alps">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b1230"/>
+      <stop offset="0.6" stop-color="#132a5e"/>
+      <stop offset="1" stop-color="#0a0a12"/>
+    </linearGradient>
+    <linearGradient id="mtn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5b8cff"/>
+      <stop offset="1" stop-color="#111634"/>
+    </linearGradient>
+    <linearGradient id="mtn2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8aa6ff"/>
+      <stop offset="1" stop-color="#0c1128"/>
+    </linearGradient>
+    <linearGradient id="dc" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#38e1b0"/>
+      <stop offset="1" stop-color="#1a8f74"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="675" fill="url(#sky)"/>
+
+  <!-- stars -->
+  <g fill="#ffffff" opacity="0.8">
+    <circle cx="150" cy="90" r="2"/><circle cx="320" cy="60" r="1.5"/>
+    <circle cx="520" cy="110" r="2"/><circle cx="760" cy="70" r="1.5"/>
+    <circle cx="980" cy="120" r="2"/><circle cx="1080" cy="60" r="1.5"/>
+    <circle cx="640" cy="40" r="1.5"/><circle cx="880" cy="150" r="1.5"/>
+  </g>
+
+  <!-- back range -->
+  <path d="M0 470 L220 250 L360 380 L560 200 L760 400 L980 240 L1200 430 L1200 675 L0 675 Z" fill="url(#mtn2)" opacity="0.6"/>
+  <!-- front range -->
+  <path d="M0 560 L180 360 L300 470 L480 300 L640 500 L820 330 L1000 520 L1200 380 L1200 675 L0 675 Z" fill="url(#mtn)"/>
+  <!-- snow caps -->
+  <path d="M480 300 L520 350 L440 350 Z M820 330 L858 378 L782 378 Z M180 360 L214 402 L146 402 Z" fill="#ffffff" opacity="0.92"/>
+
+  <!-- data center -->
+  <g transform="translate(560 470)">
+    <rect x="0" y="0" width="200" height="120" rx="10" fill="#0d1330" stroke="#38e1b0" stroke-width="3"/>
+    <g fill="url(#dc)">
+      <rect x="18" y="18" width="164" height="18" rx="4"/>
+      <rect x="18" y="46" width="164" height="18" rx="4"/>
+      <rect x="18" y="74" width="164" height="18" rx="4"/>
+    </g>
+    <g fill="#eafff7">
+      <circle cx="30" cy="27" r="3"/><circle cx="30" cy="55" r="3"/><circle cx="30" cy="83" r="3"/>
+    </g>
+  </g>
+
+  <!-- ground glow -->
+  <ellipse cx="660" cy="595" rx="220" ry="26" fill="#38e1b0" opacity="0.18"/>
+</svg>

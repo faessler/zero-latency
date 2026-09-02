@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #05060d;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+body {
+  background-color: var(--bg);
+  color: #e9ecf5;
+  overflow-x: hidden;
+}
+
+/* Animated aurora background */
+.aurora-bg {
+  background:
+    radial-gradient(60vw 60vw at 15% 10%, rgba(56, 225, 176, 0.18), transparent 60%),
+    radial-gradient(55vw 55vw at 85% 20%, rgba(91, 140, 255, 0.18), transparent 60%),
+    radial-gradient(50vw 50vw at 50% 100%, rgba(176, 107, 255, 0.16), transparent 60%),
+    var(--bg);
+}
+
+.text-gradient {
+  background-image: linear-gradient(
+    100deg,
+    #38e1b0,
+    #5b8cff,
+    #b06bff,
+    #ff6ec7,
+    #38e1b0
+  );
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gradient-pan 8s ease infinite;
+}
+
+@keyframes gradient-pan {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Rich text coming from the Google Doc */
+.prose-fancy a {
+  color: #7ff0cf;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.2s ease;
+}
+.prose-fancy a:hover {
+  color: #b06bff;
+}
+.prose-fancy strong {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+}
