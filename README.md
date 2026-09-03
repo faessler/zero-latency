@@ -17,7 +17,8 @@ Built to deploy on **Vercel**.
   hijacking**, native scrolling throughout)
 - [cheerio](https://cheerio.js.org/) to parse the Google Doc HTML export
 - [@vercel/blob](https://vercel.com/docs/storage/vercel-blob) as the pledge store
-- Node `crypto` (AES-256-GCM) to encrypt pledge PII at rest
+- Node `crypto` (X25519 + HKDF-SHA256 + AES-256-GCM) for public-key encryption of
+  pledge PII — the server can only encrypt, never decrypt
 
 ## Content: Google Doc
 
@@ -41,33 +42,53 @@ The closing section lets visitors pledge an amount in CHF and submit their first
 name, last name, email and phone number.
 
 - Submissions `POST` to `/api/pledge`, which validates the input server-side.
-- **PII is encrypted with AES-256-GCM** using `PLEDGE_ENCRYPTION_KEY` before it
-  ever touches storage. The pledge amount and timestamp are kept in clear text so
-  aggregate stats never require decrypting personal data.
+- **PII is sealed with public-key encryption** (X25519 → HKDF-SHA256 →
+  AES-256-GCM) using `PLEDGE_PUBLIC_KEY`. Each record uses a fresh ephemeral key,
+  so **the deployed app can only encrypt — it never holds a key that can decrypt**.
+  Only your offline **private** key can open pledges. The amount and timestamp are
+  kept in clear text so aggregate stats never require decrypting personal data.
 - Records are written to **Vercel Blob** with `access: "private"`
   (`pledges/<id>.json`). When `BLOB_READ_WRITE_TOKEN` is not present (local dev),
-  encrypted records are written to `./.data/pledges` instead, so the full flow is
+  sealed records are written to `./.data/pledges` instead, so the full flow is
   testable offline.
 
-Generate an encryption key with:
+### Generate your keypair
 
 ```bash
-openssl rand -base64 32
+openssl genpkey -algorithm X25519 -out pledge_private.pem
+openssl pkey -in pledge_private.pem -pubout -out pledge_public.pem
+
+# Put the PUBLIC key in the app (single-line friendly):
+base64 -i pledge_public.pem            # paste into PLEDGE_PUBLIC_KEY (or paste the PEM directly)
+```
+
+Keep `pledge_private.pem` **offline** — never deploy it. If you lose it, sealed
+pledges are unrecoverable.
+
+### Read pledges (offline, on your machine)
+
+```bash
+# Local dev store (./.data/pledges):
+npm run decrypt -- --key pledge_private.pem
+
+# Production (Vercel Blob): also export BLOB_READ_WRITE_TOKEN and BLOB_STORE_ID
+BLOB_READ_WRITE_TOKEN=... BLOB_STORE_ID=... npm run decrypt -- --key pledge_private.pem --json
 ```
 
 ## Environment variables
 
-| Variable                  | Required | Description                                                        |
-| ------------------------- | -------- | ------------------------------------------------------------------ |
-| `GOOGLE_DOC_URL`          | No\*     | Public Google Doc link with the article.                           |
-| `PLEDGE_ENCRYPTION_KEY`   | Yes\*\*  | 32-byte key (base64/hex/passphrase) used to encrypt pledge PII.    |
-| `BLOB_READ_WRITE_TOKEN`   | Yes\*\*  | Vercel Blob token. Without it, dev falls back to local files.      |
-| `BLOB_STORE_ID`           | No       | Vercel Blob store id.                                              |
-| `BLOB_WEBHOOK_PUBLIC_KEY` | No       | Public key for verifying Vercel Blob webhooks.                     |
-| `PLEDGE_LOCAL_DIR`        | No       | Override the local dev pledge directory (default `./.data/pledges`). |
+| Variable                  | Where       | Description                                                          |
+| ------------------------- | ----------- | ------------------------------------------------------------------- |
+| `GOOGLE_DOC_URL`          | app         | Public Google Doc link with the article (optional\*).               |
+| `PLEDGE_PUBLIC_KEY`       | app         | X25519 **public** key used to seal pledge PII (encrypt-only).       |
+| `BLOB_READ_WRITE_TOKEN`   | app         | Vercel Blob token. Without it, dev falls back to local files.       |
+| `BLOB_STORE_ID`           | app         | Vercel Blob store id (used to read private blobs back).             |
+| `BLOB_WEBHOOK_PUBLIC_KEY` | app         | Public key for verifying Vercel Blob webhooks (optional).           |
+| `PLEDGE_PRIVATE_KEY(_FILE)` | **offline** | X25519 private key for the decrypt tool. **Never deploy this.**    |
+| `PLEDGE_LOCAL_DIR`        | dev         | Override the local dev pledge directory (default `./.data/pledges`). |
 
-\*Without it, the sample article is shown. See `.env.example`.
-\*\*Required in production for the backer program to store pledges.
+\*Without `GOOGLE_DOC_URL`, the sample article is shown. `PLEDGE_PUBLIC_KEY` +
+`BLOB_READ_WRITE_TOKEN` are required in production for the backer program.
 
 ## Getting started
 

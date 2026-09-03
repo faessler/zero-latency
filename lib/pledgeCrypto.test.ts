@@ -1,78 +1,112 @@
-import { randomBytes } from "node:crypto";
+import { generateKeyPairSync } from "node:crypto";
 
 import { describe, expect, it } from "vitest";
 
-import { decryptJson, deriveKey, encryptJson, safeEqual } from "./pledgeCrypto";
+import { open, parsePrivateKey, parsePublicKey, safeEqual, seal } from "./pledgeCrypto";
 
-const key = randomBytes(32);
+function newKeypair() {
+  const { publicKey, privateKey } = generateKeyPairSync("x25519");
+  return {
+    publicKey,
+    privateKey,
+    publicPem: publicKey.export({ type: "spki", format: "pem" }) as string,
+    privatePem: privateKey.export({ type: "pkcs8", format: "pem" }) as string,
+  };
+}
 
-describe("deriveKey", () => {
-  it("accepts a 64-char hex key", () => {
-    const hex = randomBytes(32).toString("hex");
-    expect(deriveKey(hex).length).toBe(32);
+const secret = {
+  firstName: "Ada",
+  lastName: "Lovelace",
+  email: "ada@example.com",
+  phone: "+41 79 000 00 00",
+};
+
+describe("seal / open round trip", () => {
+  it("recovers the original object with the private key", () => {
+    const { publicKey, privateKey } = newKeypair();
+    const env = seal(secret, publicKey);
+    expect(open(env, privateKey)).toEqual(secret);
   });
 
-  it("accepts a base64 32-byte key", () => {
-    const b64 = randomBytes(32).toString("base64");
-    expect(deriveKey(b64).length).toBe(32);
+  it("marks the envelope with the X25519 scheme and an ephemeral public key", () => {
+    const { publicKey } = newKeypair();
+    const env = seal(secret, publicKey);
+    expect(env.v).toBe(2);
+    expect(env.alg).toBe("x25519-hkdf-sha256+aes-256-gcm");
+    expect(env.epk.length).toBeGreaterThan(0);
   });
 
-  it("stretches an arbitrary passphrase to 32 bytes", () => {
-    expect(deriveKey("correct horse battery staple").length).toBe(32);
-  });
-
-  it("is deterministic for the same passphrase", () => {
-    expect(deriveKey("hunter2").equals(deriveKey("hunter2"))).toBe(true);
-  });
-
-  it("throws on empty secret", () => {
-    expect(() => deriveKey("")).toThrow();
-  });
-});
-
-describe("encrypt / decrypt round trip", () => {
-  const secret = { firstName: "Ada", lastName: "Lovelace", email: "ada@example.com", phone: "+41 79 000 00 00" };
-
-  it("recovers the original object", () => {
-    const env = encryptJson(secret, key);
-    expect(decryptJson(env, key)).toEqual(secret);
-  });
-
-  it("produces base64 fields and the gcm algorithm marker", () => {
-    const env = encryptJson(secret, key);
-    expect(env.alg).toBe("aes-256-gcm");
-    expect(env.iv.length).toBeGreaterThan(0);
-    expect(env.tag.length).toBeGreaterThan(0);
-  });
-
-  it("does not leak plaintext into the ciphertext", () => {
-    const env = encryptJson(secret, key);
-    const blob = JSON.stringify(env);
-    expect(blob).not.toContain("ada@example.com");
-    expect(blob).not.toContain("Lovelace");
-  });
-
-  it("uses a fresh IV each time", () => {
-    const a = encryptJson(secret, key);
-    const b = encryptJson(secret, key);
+  it("uses a fresh ephemeral key + IV every time (no reuse)", () => {
+    const { publicKey } = newKeypair();
+    const a = seal(secret, publicKey);
+    const b = seal(secret, publicKey);
+    expect(a.epk).not.toBe(b.epk);
     expect(a.iv).not.toBe(b.iv);
     expect(a.data).not.toBe(b.data);
   });
 
-  it("fails to decrypt with the wrong key", () => {
-    const env = encryptJson(secret, key);
-    expect(() => decryptJson(env, randomBytes(32))).toThrow();
+  it("does not leak plaintext into the ciphertext", () => {
+    const { publicKey } = newKeypair();
+    const blob = JSON.stringify(seal(secret, publicKey));
+    expect(blob).not.toContain("ada@example.com");
+    expect(blob).not.toContain("Lovelace");
+  });
+});
+
+describe("the public key alone cannot decrypt", () => {
+  it("cannot be opened with a different private key", () => {
+    const a = newKeypair();
+    const b = newKeypair();
+    const env = seal(secret, a.publicKey);
+    expect(() => open(env, b.privateKey)).toThrow();
   });
 
-  it("fails when the ciphertext is tampered with (auth tag)", () => {
-    const env = encryptJson(secret, key);
+  it("fails when the ciphertext is tampered with", () => {
+    const { publicKey, privateKey } = newKeypair();
+    const env = seal(secret, publicKey);
     const tampered = { ...env, data: Buffer.from("nope").toString("base64") };
-    expect(() => decryptJson(tampered, key)).toThrow();
+    expect(() => open(tampered, privateKey)).toThrow();
+  });
+
+  it("fails when the ephemeral public key is swapped", () => {
+    const { publicKey, privateKey } = newKeypair();
+    const other = seal(secret, publicKey);
+    const env = { ...seal(secret, publicKey), epk: other.epk };
+    expect(() => open(env, privateKey)).toThrow();
+  });
+});
+
+describe("key parsing", () => {
+  it("parses a PEM public key", () => {
+    const { publicPem, privateKey } = newKeypair();
+    const pub = parsePublicKey(publicPem);
+    const env = seal(secret, pub);
+    expect(open(env, privateKey)).toEqual(secret);
+  });
+
+  it("parses a base64-encoded PEM public key (single-line env friendly)", () => {
+    const { publicPem, privateKey } = newKeypair();
+    const b64 = Buffer.from(publicPem, "utf8").toString("base64");
+    const env = seal(secret, parsePublicKey(b64));
+    expect(open(env, privateKey)).toEqual(secret);
+  });
+
+  it("parses PEM and base64-PEM private keys", () => {
+    const { publicKey, privatePem } = newKeypair();
+    const env = seal(secret, publicKey);
+    expect(open(env, parsePrivateKey(privatePem))).toEqual(secret);
+    const b64 = Buffer.from(privatePem, "utf8").toString("base64");
+    expect(open(env, parsePrivateKey(b64))).toEqual(secret);
+  });
+
+  it("rejects garbage keys", () => {
+    expect(() => parsePublicKey("not-a-key")).toThrow();
+    expect(() => parsePublicKey("")).toThrow();
   });
 });
 
 describe("safeEqual", () => {
-  it("returns true for equal strings and false otherwise", () => {
+  it("compares strings safely", () => {
     expect(safeEqual("abc", "abc")).toBe(true);
     expect(safeEqual("abc", "abd")).toBe(false);
     expect(safeEqual("abc", "abcd")).toBe(false);

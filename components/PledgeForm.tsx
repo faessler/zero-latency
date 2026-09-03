@@ -241,7 +241,8 @@ export default function PledgeForm({
       </motion.button>
 
       <p className="text-center text-xs text-white/40">
-        🔒 Your details are encrypted (AES-256-GCM) before they are stored.
+        🔒 Your details are sealed with public-key encryption (X25519 + AES-256-GCM).
+        Only the offline private key can ever read them.
       </p>
     </form>
   );

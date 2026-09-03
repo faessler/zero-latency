@@ -4,13 +4,14 @@ import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomBytes } from "node:crypto";
 
-import { encryptJson, type EncryptedEnvelope } from "./pledgeCrypto";
+import { seal, type SealedEnvelope } from "./pledgeCrypto";
 import type { PledgeInput } from "./pledge";
 
 const BLOB_PREFIX = "pledges/";
 
 /**
- * What we persist per pledge. PII (name / email / phone) is encrypted; the
+ * What we persist per pledge. PII (name / email / phone) is sealed to the
+ * PLEDGE_PUBLIC_KEY and can only be opened offline with the private key; the
  * amount and timestamp are kept in clear so aggregate stats never require
  * decrypting personal data.
  */
@@ -20,7 +21,7 @@ export interface StoredPledge {
   amountChf: number;
   currency: "CHF";
   createdAt: string;
-  pii: EncryptedEnvelope;
+  pii: SealedEnvelope;
 }
 
 export interface PledgeStats {
@@ -47,7 +48,7 @@ function buildRecord(input: PledgeInput): StoredPledge {
     amountChf: input.amountChf,
     currency: "CHF",
     createdAt: new Date().toISOString(),
-    pii: encryptJson({
+    pii: seal({
       firstName: input.firstName,
       lastName: input.lastName,
       email: input.email,
