@@ -5,9 +5,10 @@ import {
   motion,
   useMotionValue,
   useReducedMotion,
+  useSpring,
   useTransform,
 } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 function LatencyCounter() {
   const value = useMotionValue(438);
@@ -38,30 +39,35 @@ function LatencyCounter() {
   );
 }
 
+const TILT_DEG = 18;
+
 export default function Hero({ title }: { title: string }) {
-  const ref = useRef<HTMLDivElement>(null);
   const rotateX = useMotionValue(0);
   const rotateY = useMotionValue(0);
   const reduce = useReducedMotion();
 
-  function onMove(e: React.MouseEvent<HTMLDivElement>) {
-    if (reduce || !ref.current) return;
-    const rect = ref.current.getBoundingClientRect();
-    const px = (e.clientX - rect.left) / rect.width - 0.5;
-    const py = (e.clientY - rect.top) / rect.height - 0.5;
-    rotateY.set(px * 12);
-    rotateX.set(-py * 12);
-  }
+  // Track the cursor across the whole viewport (not just while hovering the title)
+  // and tilt the title toward it. Smoothed with a spring.
+  const springX = useSpring(rotateX, { stiffness: 90, damping: 20, mass: 0.6 });
+  const springY = useSpring(rotateY, { stiffness: 90, damping: 20, mass: 0.6 });
 
-  function onLeave() {
-    rotateX.set(0);
-    rotateY.set(0);
-  }
+  useEffect(() => {
+    if (reduce) return;
+    function onMove(e: MouseEvent) {
+      const px = e.clientX / window.innerWidth - 0.5; // -0.5 .. 0.5
+      const py = e.clientY / window.innerHeight - 0.5;
+      // Lean the title toward the cursor: the edge nearest the pointer rises forward.
+      rotateY.set(-px * 2 * TILT_DEG);
+      rotateX.set(py * 2 * TILT_DEG);
+    }
+    window.addEventListener("mousemove", onMove);
+    return () => window.removeEventListener("mousemove", onMove);
+  }, [reduce, rotateX, rotateY]);
 
   const words = title.split(" ");
 
   return (
-    <section className="relative flex min-h-[92vh] flex-col items-center justify-center px-6 text-center">
+    <section className="relative flex min-h-[92svh] flex-col items-center justify-center px-6 text-center">
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -71,15 +77,9 @@ export default function Hero({ title }: { title: string }) {
         a world without waiting
       </motion.div>
 
-      <div
-        ref={ref}
-        onMouseMove={onMove}
-        onMouseLeave={onLeave}
-        style={{ perspective: 800 }}
-        className="[transform-style:preserve-3d]"
-      >
+      <div style={{ perspective: 800 }} className="[transform-style:preserve-3d]">
         <motion.h1
-          style={{ rotateX, rotateY }}
+          style={{ rotateX: springX, rotateY: springY }}
           className="font-display text-[clamp(3rem,12vw,9rem)] font-bold leading-[0.95]"
         >
           {words.map((word, wi) => (

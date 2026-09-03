@@ -7,7 +7,7 @@ import type { PledgeStats } from "@/lib/pledgeStore";
 
 import PledgeForm from "./PledgeForm";
 
-const GOAL_CHF = 2_500_000;
+const GOAL_CHF = 100_000_000;
 
 function useCountUp(to: number, active: boolean) {
   const value = useMotionValue(0);

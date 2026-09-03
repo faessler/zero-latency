@@ -10,7 +10,7 @@ export default async function Home() {
   const [article, stats] = await Promise.all([getArticle(), getPledgeStats()]);
 
   return (
-    <main className="aurora-bg relative min-h-screen">
+    <main className="aurora-bg relative min-h-[100svh]">
       <ReadingProgress />
       <FloatingIcons />
 
